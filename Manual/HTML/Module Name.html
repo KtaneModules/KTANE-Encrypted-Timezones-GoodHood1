@@ -14,6 +14,8 @@
             border: none;
         }
 
+        .wide-column { width: 20%; }
+
         .page-footer::before { content: 'Page '; }
         .page-footer::after { content: ' of 2'; }
     </style>
@@ -53,24 +55,36 @@
                 <h3>Decrypting The Current City’s Time </h3>
                 <p>
                     Make note of the RGB components of each light on the module. Follow the table below to decrypt the lights. 
-                    A position should be toggled if the row’s condition is true and the serial number contains a character also 
-                    found at the top of the column. When toggling a color, if the color component is present in that component’s position, then remove it. 
+                    A position should be toggled if the row’s condition is true and the serial number contains a character
+                    found at the top of that column. When toggling a color, if the color component is present in that component’s position, then remove it. 
                     Otherwise, add it to the color (e.g. a red toggle would make green become yellow and white become cyan). 
                 </p>
 
-                <table>
+                <table style="width:100%;">
+                    <tr><th rowspan="2">If...</th><th rowspan="2">..then toggle...</th><th colspan="5">...in the positions...</th></tr>
+                    <tr><th>L/T/Y<br>/4/8</th><th>J/O/P<br>/0/5</th><th>A/B/C<br>/1/2</th><th>D/M/Z<br>/3/7</th><th>E/G/N<br>/6/9</th></tr>
                     <tr>
-                        <th>If...</th>
-                        <th>..then toggle...</th>
-                        <th class="column-count=5"></th>
+                        <td>The serial number contains a vowel.</td>
+                        <td>Red</td>
+                        <td>2/4</td><td>3/7</td><td>9/10</td><td>11/12</td><td>1/6</td>
+                    </tr>
+                    <tr>
+                        <td>The serial number does not contain a vowel.</td>
+                        <td>Green and blue</td>
+                        <td>8/10</td><td>3/12</td><td>6/7</td><td>1/9</td><td>4/11</td>
+                    </tr>
+                    <tr>
+                        <td>There are at least 3 battery holders.</td>
+                        <td>Red and blue</td>
+                        <td>5/8</td><td>1/11</td><td>4/6</td><td>2/10</td><td>3/12</td>
+                    </tr>
+                    <tr>
+                        <td>There is at least 1 D battery.</td>
+                        <td>Blue</td>
+                        <td>3/12</td><td>4/5</td><td>2/7</td><td>1/6</td><td>8/9</td>
                     </tr>
                 </table>
 
-
-
-                
-                
-                
             </div>
             <div class="page-footer relative-footer">1</div>
         </div>
@@ -81,8 +95,18 @@
                 <span class="page-header-section-title">Encrypted Timezones</span>
             </div>
             <div class="page-content">
-                <h3>Section</h3>
-                <p>More info.</p>
+                <table>
+                    <tr>
+                        <td>There are more lit than unlit indicators.</td>
+                        <td>Red, green and blue</td>
+                        <td>8/10</td><td>1/2</td><td>4/7</td><td>3/12</td><td>5/11</td>
+                    </tr>
+                    <tr>
+                        <td>There are more unlit.</td>
+                        <td>x</td>
+                        <td>x</td><td>x</td><td>x</td><td>x</td><td>x</td>
+                    </tr>
+                </table>
             </div>
             <div class="page-footer relative-footer">2</div>
         </div>
