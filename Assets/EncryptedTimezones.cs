@@ -35,7 +35,7 @@ public class EncryptedTimezones : MonoBehaviour
 
     List<string> encryptedLights = new List<string>(); //These 3 are lists of binary colors
     List<string> decryptedLights = new List<string>();
-    List<string> submitLights = new List<string>();
+    List<string> submitLights = new List<string> { "000", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000" };
 
     List<string> currentLights = new List<string> { "000", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000" };
 
@@ -60,6 +60,8 @@ public class EncryptedTimezones : MonoBehaviour
 
     bool inputMode;
     bool isInteractable = true;
+
+    List<string> logQueue = new List<string>();
 
     void Awake()
     {
@@ -86,11 +88,19 @@ public class EncryptedTimezones : MonoBehaviour
         GenerateDecryptedLights();
         EncryptStartingLights();
 
+        LogColors(encryptedLights, "The current time colors before decryption are");
+        foreach (string logElement in logQueue)
+        {
+            Debug.Log(logElement);
+        }
+
         LogColors(decryptedLights, "The starting city decrypted colors are");
         Debug.LogFormat("[Encrypted Timezones #{0}] After decrypting, the base color is {1}. The hour hand is at {2} o'clock and is {3}. The minute hand is at {4} o'clock and is {5}", ModuleId,
             colorNames[Array.IndexOf(binaryColors, timeColorComponents[0])], currentTimeIndexes[0], colorNames[Array.IndexOf(binaryColors, timeColorComponents[1])], currentTimeIndexes[1], colorNames[Array.IndexOf(binaryColors, timeColorComponents[2])]);
 
+        NotateGoalTime();
         Debug.LogFormat("[Encrypted Timezones #{0}] ----BEGINNING GOAL CITY ENCRYPTION----", ModuleId);
+        LogColors(submitLights, "The goal time colors before encryption are");
         EncryptGoalLights();
 
         ShowLights(encryptedLights);
@@ -103,12 +113,21 @@ public class EncryptedTimezones : MonoBehaviour
 
     }
 
+    void NotateGoalTime()
+    {
+        AddColorsToArray(submitLights, allLights, timeColorComponents[0]);
+        AddColorsToArray(submitLights, new int[] { goalTimeIndexes[0] - 1 }, timeColorComponents[1]);
+        AddColorsToArray(submitLights, new int[] { goalTimeIndexes[1] - 1 }, timeColorComponents[2]);
+    }
+
     void LightPress(KMSelectable button)
     {
         if (ModuleSolved || isInteractable == false)
             return;
         string colorToAdd = "000";
-        switch (Bomb.GetFormattedTime().Substring(Bomb.GetFormattedTime().Length-2, 1))
+
+        int timeRemainingSeconds = Mathf.FloorToInt(Bomb.GetTime());
+        switch ((Mathf.FloorToInt((timeRemainingSeconds % 60) / 10)).ToString())
         {
             case "0":
             case "3":
@@ -142,10 +161,12 @@ public class EncryptedTimezones : MonoBehaviour
         {
             ModuleSolved = true;
             StartCoroutine(Solve());
+            StartCoroutine(WaveAnimation());
         }
         else
         {
             Module.HandleStrike();
+            StartCoroutine("Reset");
         }
 
 
@@ -193,17 +214,38 @@ public class EncryptedTimezones : MonoBehaviour
         Audio.PlaySoundAtTransform("ding", middleButton.transform);
 
         if (goalCity.Contains("\n"))
-            middleText.fontSize = 90;
+            middleText.fontSize = 85;
         else if (goalCity.Length < 7)
-            middleText.fontSize = 120;
+            middleText.fontSize = 115;
         else if (goalCity.Length < 11)
             middleText.fontSize = 90;
-        else middleText.fontSize = 80;
+        else middleText.fontSize = 75;
 
 
         middleText.text = goalCity;
         foreach (KMSelectable button in lightButtons)
             button.transform.GetChild(0).gameObject.transform.localScale = new Vector3(1.1f, 0.001f, 1.1f);
+        isInteractable = true;
+    }
+
+    IEnumerator Reset()
+    {
+        isInteractable = false;
+        inputMode = false;
+        currentLights = new List<string> { "000", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000" };
+        for (int i = 0; i < lightRends.Length; i++)
+        {
+            lightRends[i].material = colors[Array.IndexOf(binaryColors, encryptedLights[i])];
+            cbTexts[i].text = shortColorNames[Array.IndexOf(binaryColors, encryptedLights[i])];
+            Audio.PlaySoundAtTransform("ding", lightButtons[i].transform);
+            yield return new WaitForSeconds(0.1f);
+        }
+        StartCoroutine("CycleCity");
+        middleText.fontSize = 300;
+        Audio.PlaySoundAtTransform("dong", middleButton.transform);
+
+        foreach (KMSelectable button in lightButtons)
+            button.transform.GetChild(0).gameObject.transform.localScale = new Vector3(0.000001f, 0.00000001f, 0.0000001f);
         isInteractable = true;
     }
 
@@ -268,8 +310,7 @@ public class EncryptedTimezones : MonoBehaviour
                     }
                 }
                 curDigitsString = curDigitsString.Substring(0, curDigitsString.Length - 2);
-                Debug.LogFormat("[Encrypted Timezones #{0}] Rule {1} applies, toggling {2} at positions {3}", ModuleId, i+1, colorNames[Array.IndexOf(shortColorNames, colorToggleDatabase[i])], curDigitsString);
-
+                logQueue.Add(string.Format("[Encrypted Timezones #{0}] Rule {1} applies, toggling {2} at positions {3}", ModuleId, i + 1, colorNames[Array.IndexOf(shortColorNames, colorToggleDatabase[i])], curDigitsString));
 
             }
         }
@@ -291,7 +332,6 @@ public class EncryptedTimezones : MonoBehaviour
     void EncryptGoalLights()
     {
         int[] primeNumbered = new int[] { 1, 2, 4, 6, 10 };
-        submitLights = new List<string>(decryptedLights);
         if (Bomb.GetOnIndicators().Contains("SND") || Bomb.GetOffIndicators().Contains("CAR"))
         {
             for (int i = 0; i < 12; i++)
@@ -321,7 +361,6 @@ public class EncryptedTimezones : MonoBehaviour
         }
         submitLights = Helper.ShiftListClockwise(submitLights, Bomb.GetSerialNumberNumbers().Last());
         Debug.LogFormat("[Encrypted Timezones #{0}] Rule {1} applied, shifting all lights clockwise {2} times.", ModuleId, 6, Bomb.GetSerialNumberNumbers().Last());
-        LogColors(submitLights, "The colors are now");
         if (Bomb.GetSerialNumberLetters().Where(x => "AEIOU".Contains(x)).Count() != 1)
         {
             AddColorsToArray(submitLights, allLights.Where(x => (x + 1) % 4 == 0).ToArray(), "110");
@@ -353,7 +392,6 @@ public class EncryptedTimezones : MonoBehaviour
     void LogRule(int rule, string text)
     {
         Debug.LogFormat("[Encrypted Timezones #{0}] Rule {1} applied, {2}", ModuleId, rule, text);
-        LogColors(submitLights, "The colors are now");
     }
 
     void LogColors(List<string> colorList, string message)
@@ -464,18 +502,132 @@ public class EncryptedTimezones : MonoBehaviour
         }
     }
 
+    IEnumerator WaveAnimation()
+    {
+        Animator[] animators = lightButtons.Select(b => b.GetComponent<Animator>()).ToArray();
+        float t = 0;
+        int step = -1;
+        for (int i = 0; i < 3; i++)
+        {
+            while (t <= 12)
+            {
+                if (Mathf.FloorToInt(t) != step)
+                {
+                    step = Mathf.FloorToInt(t);
+                    animators[step].SetTrigger("DoWave");
+                }
+                t = (t + Time.deltaTime * 10);
+                yield return null;
+            }
+            t %= 12;
+        }
+    }
 
 #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"Use !{0} to do something.";
+    private readonly string TwitchHelpMessage = @"Use '!{0} middle' to press the center button | "
+                                                + "'!{0} <digit> press <buttons>' to press that button in clock directions from 1-12 at that tens timer digit; "
+                                                + "chain button presses using spaces, "
+                                                + "eg. '!{0} 4 press 1 2 3 10 11 12' | "
+                                                + "'!{0} <colourblind/cb>' to toggle colourblind mode.";
 #pragma warning restore 414
 
-    IEnumerator ProcessTwitchCommand(string Command)
+    private string[] _cbCommands = new string[] { "CB", "COLOURBLIND", "COLORBLIND" };
+    private string[] _buttonNumbers = new string[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
+    private string[] _timerDigits = new string[] { "0", "1", "2", "3", "4", "5" };
+
+    IEnumerator ProcessTwitchCommand(string command)
     {
-        yield return null;
+        command = command.Trim().ToUpper();
+
+        if (_cbCommands.Contains(command))
+        {
+            yield return null;
+            for (int i = 0; i < 12; i++)
+                cbTexts[i].gameObject.SetActive(!cbTexts[i].gameObject.activeSelf);
+            yield break;
+        }
+
+        if (command == "MIDDLE")
+        {
+            yield return null;
+            middleButton.OnInteract();
+            yield break;
+        }
+
+        string[] commands = command.Split(' ');
+
+        if (!inputMode)
+        {
+            yield return "sendtochaterror You are not able to select the lights now!";
+        }
+        if (commands.Length == 0)
+        {
+            yield return "sendtochaterror That is an empty command!";
+        }
+        if (commands.Length == 1)
+        {
+            yield return "sendtochaterror That is an invalid command!";
+        }
+
+        if (commands[1] == "PRESS")
+        {
+            if (!_timerDigits.Contains(commands[0]))
+            {
+                yield return "sendtochaterror " + commands[0] + " is not a valid timer digit.";
+            }
+            if (commands.Length < 3) 
+            {
+                yield return "sendtochaterror No buttons were specified.";
+            }
+            for (int i = 2; i < commands.Length; i++)
+            {
+                if (!_buttonNumbers.Contains(commands[i]))
+                {
+                    yield return "sendtochaterror " + commands[i] + " is not a valid button.";
+                }
+            }
+            yield return null;
+
+            while ((Mathf.FloorToInt(((Mathf.FloorToInt(Bomb.GetTime())) % 60) / 10)).ToString() != commands[0])
+                yield return null;
+            for (int i = 2; i < commands.Length; i++)
+            {
+                lightButtons[Int32.Parse(commands[i]) - 1].OnInteract();
+            }
+        }
+        else
+        {
+            yield return "sendtochaterror Invalid command!"; // Probably Mar typed this command
+        }
     }
+
+    private string[] componentNums = new string[] { "0", "1", "2", "3", "4", "5"};
 
     IEnumerator TwitchHandleForcedSolve()
     {
-        yield return null;
+        if (!inputMode)
+            middleButton.OnInteract();
+
+        while (!isInteractable)
+            yield return null;
+
+        string currentDigit = ((Mathf.FloorToInt(((Mathf.FloorToInt(Bomb.GetTime())) % 60) / 10)).ToString());
+        int componentIndex = Array.IndexOf(componentNums, currentDigit);
+        for (int comp = 0; comp < 3; comp++)
+        {
+            while (!componentNums[componentIndex].Contains((Mathf.FloorToInt(((Mathf.FloorToInt(Bomb.GetTime())) % 60) / 10)).ToString()))
+                yield return null;
+            for (int light = 0; light < 12; light++)
+            {
+                if (currentLights[light][componentIndex % 3] != submitLights[light][componentIndex % 3])
+                {
+                    lightButtons[light].OnInteract();
+                    yield return new WaitForSeconds(.1f);
+                }
+            }
+            componentIndex = (componentIndex - 1 + 6) % 6;
+        }
+
+        middleButton.OnInteract();
     }
 }
